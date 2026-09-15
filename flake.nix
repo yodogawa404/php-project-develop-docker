@@ -18,7 +18,7 @@
           pkgs = import nixpkgs { inherit system; };
         in
         pkgs.dockerTools.buildImage {
-          name = "yodogawa404/20260915-php-test";
+          name = "yodogawa404/php-project-develop";
           tag = "latest";
           created = "now";
 
