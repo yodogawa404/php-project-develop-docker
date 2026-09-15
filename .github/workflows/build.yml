@@ -1,26 +1,41 @@
 name: build
 
 on:
-  push:
-    branches: [main]
+  schedule:
+    - cron: "0 0 * * 1"
   workflow_dispatch:
 
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: yodogawa404/php-project-develop
+
 jobs:
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
     permissions:
-      packages: write
       contents: read
+      packages: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: docker/login-action@v3
+      - uses: cachix/install-nix-action@v31
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
 
       - run: |
-          docker build -t ghcr.io/yodogawa404/php-project-develop:latest .
-          docker push ghcr.io/yodogawa404/php-project-develop:latest
+          nix build .#dockerImage --print-out-paths > result_path.txt
+          echo "IMAGE_TAR=$(cat result_path.txt)" >> $GITHUB_ENV
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: |
+          REPO_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+
+          DATE_TAG=$(date +%Y-%m-%d__%H-%m)
+
+          skopeo copy docker-archive:${{ env.IMAGE_TAR }} docker://$REPO_LOWER:$DATE_TAG
+          skopeo copy docker-archive:${{ env.IMAGE_TAR }} docker://$REPO_LOWER:latest
