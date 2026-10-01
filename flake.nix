@@ -31,12 +31,14 @@
               php
               phpPackages.composer
               nodejs
+              fakeNss
             ];
           };
 
           extraCommands = "
             mkdir -p usr/bin
             ln -s /bin/env usr/bin/env
+            mkdir -m 1777 tmp
           ";
 
           config = {
